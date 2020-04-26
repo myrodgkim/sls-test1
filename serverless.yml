@@ -49,8 +49,6 @@ provider:
 # you can define service wide environment variables here
 #  environment:
 #    variable1: value1
-  environment:
-    qn_dev: "SlsTestQueue1Dev"
 
 # you can add packaging information here
 #package:
@@ -63,20 +61,26 @@ provider:
 
 custom:
   # serverless if else plugin 을 통한 개발환경 분리
+  currentStage: ${opt:stage, self:provider.stage}
+  environment:
+    qn_dev: 'test_dev'
+    qn_prod: 'test_prod'
+
   serverlessIfElse:
-    - If: '"${self:provider.stage}" == "prod"'
-      Set:
-        - provider.environment.qn_prod: "SlsTestQueue1"
+    - If: '"${self:custom.currentStage}" == "prod"'
       Exclude:
         - resources.Resources.SlsTestQueue1Dev
-      ElseSet:
-        - provider.environment.qn_dev: "SlsTestQueue1Dev"
+      Set:
+        custom.environment.qn_prod: "SlsTestQueue1"
       ElseExclude:
         - resources.Resources.SlsTestQueue1
+      ElseSet:
+        custom.environment.qn_dev: "SlsTestQueue1Dev"
 
 
 plugins:
   - serverless-plugin-ifelse
+
 functions:
   hello:
     handler: handler.hello
@@ -85,7 +89,7 @@ functions:
           batchSize: 10
           arn:
             Fn::GetAtt:
-              - ${self:provider.environment.qn_${self:provider.stage}}
+              - ${self:custom.environment.qn_${self:custom.currentStage}}
               - Arn
   hello2:
     handler: handler.hello2
@@ -94,7 +98,7 @@ functions:
           batchSize: 10
           arn:
             Fn::GetAtt:
-              - ${self:provider.environment.qn_${self:provider.stage}}
+              - ${self:custom.environment.qn_${self:custom.currentStage}}
               - Arn
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events

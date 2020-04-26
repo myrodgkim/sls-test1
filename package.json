@@ -1,0 +1,9 @@
+{
+  "name": "sls-test1",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {},
+  "devDependencies": {
+    "serverless-plugin-ifelse": "^1.0.5"
+  }
+}

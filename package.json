@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "dependencies": {},
   "devDependencies": {
-    "serverless-plugin-ifelse": "^1.0.5"
+    "serverless-plugin-ifelse": "^1.0.5",
+    "serverless-plugin-tracing": "^2.0.0"
   }
 }

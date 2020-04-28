@@ -23,12 +23,21 @@ service: sls-test1
 provider:
   name: aws
   runtime: nodejs12.x
+  tracing: true
 
 # you can overwrite defaults here
 #  stage: dev
   stage: dev
 #  region: us-east-1
   region: ap-northeast-2
+
+  iamRoleStatements:
+    - Effect: "Allow" # xray permissions (required)
+      Action:
+        - "xray:PutTraceSegments"
+        - "xray:PutTelemetryRecords"
+      Resource:
+        - "*"
 
 # you can add statements to the Lambda function's IAM Role here
 #  iamRoleStatements:
@@ -63,23 +72,34 @@ custom:
   # serverless if else plugin 을 통한 개발환경 분리
   currentStage: ${opt:stage, self:provider.stage}
   environment:
-    qn_dev: 'test_dev'
-    qn_prod: 'test_prod'
+    arn_dev:
+      Fn::GetAtt:
+        - "SlsTestQueue1Dev"
+        - Arn
+    arn_prod:
+      Fn::GetAtt:
+        - "SlsTestQueue1"
+        - Arn
 
   serverlessIfElse:
     - If: '"${self:custom.currentStage}" == "prod"'
+      Set:
+#        functions.hello.events.0.sqs.arn: ${self:custom.environment.arn_prod}
+#        functions.hello2.events.0.sqs.arn: ${self:custom.environment.arn_prod}
+        custom.environment.is_prod: "true"
       Exclude:
         - resources.Resources.SlsTestQueue1Dev
-      Set:
-        custom.environment.qn_prod: "SlsTestQueue1"
+      ElseSet:
+        custom.environment.is_prod: "false"
+#        functions.hello.events.0.sqs.arn: ${self:custom.environment.arn_dev}
+#        functions.hello2.events.0.sqs.arn: ${self:custom.environment.arn_dev}
       ElseExclude:
         - resources.Resources.SlsTestQueue1
-      ElseSet:
-        custom.environment.qn_dev: "SlsTestQueue1Dev"
 
 
 plugins:
   - serverless-plugin-ifelse
+  - serverless-plugin-tracing
 
 functions:
   hello:
@@ -88,18 +108,14 @@ functions:
       - sqs:
           batchSize: 10
           arn:
-            Fn::GetAtt:
-              - ${self:custom.environment.qn_${self:custom.currentStage}}
-              - Arn
+            ${self:custom.environment.arn_${self:custom.currentStage}}
   hello2:
     handler: handler.hello2
     events:
       - sqs:
           batchSize: 10
           arn:
-            Fn::GetAtt:
-              - ${self:custom.environment.qn_${self:custom.currentStage}}
-              - Arn
+            ${self:custom.environment.arn_${self:custom.currentStage}}
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
